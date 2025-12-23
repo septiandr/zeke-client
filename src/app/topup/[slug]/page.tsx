@@ -1,6 +1,8 @@
 import Image from "next/image"
-import { getProductBySlug } from "@/lib/products"
+import { getProductBySlug, getProductsByCategory } from "@/lib/products"
 import TopupForm from "@/components/TopupForm"
+import Categories from "@/components/Categories"
+import CategorySection from "@/components/CategorySection"
 
 type Props = {
   params: { slug: string }
@@ -17,7 +19,7 @@ export default function TopupPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-8 font-sans dark:bg-black">
+    <div className="min-h-screen py-8 font-sans">
       <div className="mx-auto max-w-3xl px-4">
         <div className="mb-6 flex items-center gap-4">
           <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -30,6 +32,13 @@ export default function TopupPage({ params }: Props) {
           </div>
         </div>
         <TopupForm product={product} />
+      </div>
+      <div className="mx-auto max-w-6xl px-4">
+        <Categories />
+        <CategorySection
+          title="Produk terkait"
+          products={getProductsByCategory(product.category).filter(p => p.slug !== product.slug).slice(0, 6)}
+        />
       </div>
     </div>
   )

@@ -3,9 +3,9 @@ import { useState } from "react"
 import { useEffect } from "react"
 
 const slides = [
-  { title: "Promo Akhir Tahun", desc: "Diskon hingga 50% untuk game populer", color: "from-[var(--color-primary)] to-[var(--color-secondary)]" },
-  { title: "Tanpa Biaya Admin", desc: "Transaksi lebih hemat setiap hari", color: "from-[var(--color-primary)] to-[var(--color-secondary)]" },
-  { title: "Pengiriman Instan", desc: "Top up langsung masuk ke akun Anda", color: "from-[var(--color-primary)] to-[var(--color-secondary)]" }
+  { title: "Promo Akhir Tahun", desc: "Diskon hingga 50% untuk game populer", color: "from-[var(--color-primary)] to-[var(--color-primary-soft)]" },
+  { title: "Tanpa Biaya Admin", desc: "Transaksi lebih hemat setiap hari", color: "from-[var(--color-primary)] to-[var(--color-primary-soft)]" },
+  { title: "Pengiriman Instan", desc: "Top up langsung masuk ke akun Anda", color: "from-[var(--color-primary)] to-[var(--color-primary-soft)]" }
 ]
 
 export default function Banner() {
@@ -13,11 +13,11 @@ export default function Banner() {
   useEffect(() => {
     const id = setInterval(() => {
       setIndex(i => (i + 1) % slides.length)
-    }, 3500)
+    }, 3000)
     return () => clearInterval(id)
   }, [])
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-6">
+    <section className="mx-auto max-w-6xl px-4 pt-1">
       <div className="rounded-2xl p-8 text-black">
         <div className={`bg-gradient-to-br ${slides[index].color} rounded-2xl p-8 text-black`}>
           <h2 className="text-xl font-bold"> {slides[index].title}</h2>

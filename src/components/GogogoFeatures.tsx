@@ -11,9 +11,9 @@ export default function GogogoFeatures() {
         {features.map((f, i) => (
           <div
             key={i}
-            className="hover-raise gold-glow hover-shimmer rounded-xl border border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/10 to-[var(--color-tertiary)]/20 p-6 text-center shadow-sm backdrop-blur"
+            className="hover-raise gold-glow hover-shimmer rounded-xl border border-white/10 bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-tertiary)] p-6 text-center shadow-sm backdrop-blur"
           >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-primary)]/30">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-primary)]">
               <f.Icon className="h-7 w-7 text-[var(--color-secondary)]" />
             </div>
             <div className="mt-3 text-sm font-bold text-[var(--color-tertiary)] dark:text-white">{f.title}</div>

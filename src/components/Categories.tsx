@@ -22,7 +22,7 @@ export default function Categories() {
               const el = document.getElementById("kategori-grid")
               if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
             }}
-            className="rounded-full border border-white/20 bg-gradient-to-br from-[var(--color-secondary)]/10 to-[var(--color-tertiary)]/20 px-3 py-1 text-xs text-[var(--color-tertiary)] transition hover:bg-[var(--color-primary)]/20"
+            className="rounded-full border border-white/20 bg-[var(--color-primary)] px-3 py-1 text-xs text-[var(--color-tertiary)] transition hover:bg-[var(--color-primary)]/20"
           >
             {c}
           </button>

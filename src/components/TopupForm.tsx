@@ -3,6 +3,7 @@ import { useMemo, useState } from "react"
 import { Product, Denomination } from "@/lib/products"
 import PaymentMethodSelector from "./PaymentMethodSelector"
 import { useRouter } from "next/navigation"
+import InfoModal from "./InfoModal"
 
 type Props = {
   product: Product
@@ -14,6 +15,7 @@ export default function TopupForm({ product }: Props) {
   const [server, setServer] = useState("")
   const [denom, setDenom] = useState<Denomination | null>(product.denominations[0] || null)
   const [payment, setPayment] = useState("QRIS")
+  const [openInfo, setOpenInfo] = useState(false)
 
   const total = useMemo(() => (denom ? denom.price : 0), [denom])
 
@@ -21,26 +23,26 @@ export default function TopupForm({ product }: Props) {
     <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-4">
-          <div>
-            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">ID Pemain</div>
-            <input
-              value={playerId}
-              onChange={e => setPlayerId(e.target.value)}
-              placeholder="Masukkan ID pemain"
-              className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-0 focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-            />
-          </div>
-          {product.requiresServer && (
-            <div>
-              <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Server</div>
-              <input
-                value={server}
-                onChange={e => setServer(e.target.value)}
-                placeholder="Masukkan server"
-                className="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-0 focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-              />
+          <div className="rounded-lg border border-white/20 bg-gradient-to-br from-[var(--color-secondary)]/10 to-[var(--color-tertiary)]/20 p-4">
+            <div className="text-sm font-medium text-[var(--color-tertiary)] dark:text-white">Data Pembeli</div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-white/20 bg-white/60 px-2 py-1 text-black">
+                {playerId ? playerId : "ID/No. (belum diisi)"}
+              </span>
+              {product.requiresServer && (
+                <span className="rounded-full border border-white/20 bg-white/60 px-2 py-1 text-black">
+                  {server ? server : "Zona/Server (belum diisi)"}
+                </span>
+              )}
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setOpenInfo(true)}
+              className="mt-3 rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-semibold text-black hover:opacity-90"
+            >
+              Lengkapi Data
+            </button>
+          </div>
           <div>
             <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nominal</div>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -98,6 +100,19 @@ export default function TopupForm({ product }: Props) {
           </div>
         </div>
       </div>
+      <InfoModal
+        key={`${product.slug}-${openInfo}-${playerId}-${server}`}
+        open={openInfo}
+        product={product}
+        initialId={playerId}
+        initialZone={server}
+        onClose={() => setOpenInfo(false)}
+        onSave={(idValue, zoneValue) => {
+          setPlayerId(idValue)
+          setServer(zoneValue)
+          setOpenInfo(false)
+        }}
+      />
     </div>
   )
 }

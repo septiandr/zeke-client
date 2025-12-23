@@ -15,8 +15,8 @@ export default function Home() {
       <Reveal><Banner /></Reveal>
       <Reveal><GogogoFeatures /></Reveal>
       <Reveal><Categories /></Reveal>
+      <Reveal><GogogoProductGrid title="Game Lainnya" /></Reveal>
       <Reveal><TrackTransaction /></Reveal>
-      <Reveal><GogogoProductGrid title="Game Populer" /></Reveal>
       <Reveal><SuggestSection /></Reveal>
       <Reveal><FAQ /></Reveal>
     </div>

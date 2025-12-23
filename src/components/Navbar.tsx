@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 
 export default function Navbar() {
@@ -6,7 +7,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl px-4">
         <div className="flex items-center justify-between py-3">
           <Link href="/" className="text-lg font-bold text-[var(--color-primary)]">
-            Zekestore
+            <Image src="/image/logo.png" alt="logo" width={200} height={200} />
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <Link href="/" className="link-underline text-[var(--color-tertiary)] hover:text-[var(--color-primary)] dark:text-white/80">
