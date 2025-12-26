@@ -153,7 +153,7 @@ export async function getBrands(category: string) {
 
 // ✅ ini yang kamu butuh:
 // GET /products/items?category=games&brand=point-blank
-export async function getProductItems(params: {
+export async function getProductsByTopupSlug(params: {
   category: string;
   brand: string;
 }): Promise<DigiflazzProduct[]> {
@@ -166,7 +166,7 @@ export async function getProductItems(params: {
   return Array.isArray(data) ? (data as DigiflazzProduct[]) : [];
 }
 
-// =====================
+// =====================`
 // =====================
 // Payment
 // =====================

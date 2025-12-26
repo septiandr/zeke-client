@@ -1,5 +1,5 @@
 import { Product } from "@/lib/products"
-import ProductCard from "./ProductCard"
+import ProductCard from "./topup/ProductCard"
 
 type Props = {
   title: string

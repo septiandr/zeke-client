@@ -1,45 +1,70 @@
-import Image from "next/image"
-import { getProductBySlug, getProductsByCategory } from "@/lib/products"
-import TopupForm from "@/components/TopupForm"
-import Categories from "@/components/Categories"
-import CategorySection from "@/components/CategorySection"
+import { getProductsByTopupSlug } from "@/api/api";
+import HowToAccordion from "@/components/HowToAccordion";
+import ProductTabs from "@/components/topup/ProductTabs";
+import PurchaseFormClient from "@/components/topup/PurchaseFromClient";
+import TopupHeader from "@/components/topup/TopupHeader";
+import { parseTopupSlug } from "@/lib/slug";
+import { buildGroups, RawProduct } from "@/lib/topup";
 
-type Props = {
-  params: { slug: string }
-}
+type Props = { params: Promise<{ slug: string }> };
 
-export default function TopupPage({ params }: Props) {
-  const product = getProductBySlug(params.slug)
-  if (!product) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <div className="text-center text-zinc-700 dark:text-zinc-300">Produk tidak ditemukan</div>
-      </div>
-    )
-  }
+export default async function TopupPage({ params }: Props) {
+  const { slug } = await params;
+
+  // ✅ parse slug -> brand + category
+  const { brandSlug, categorySlug } = parseTopupSlug(slug);
+
+  // ✅ hit endpoint sesuai wrapper kamu
+  const raw: RawProduct[] = await getProductsByTopupSlug({
+    brand: slug,
+    category: 'games',
+  });
+  console.log("🚀 ~ TopupPage ~ raw:", raw)
+
+  const groups = buildGroups(raw);
+
+  const brandName = raw?.[0]?.brand ?? brandSlug.replaceAll("-", " ").toUpperCase();
+  const categoryName = raw?.[0]?.category ?? categorySlug.toUpperCase();
 
   return (
-    <div className="min-h-screen py-8 font-sans">
-      <div className="mx-auto max-w-3xl px-4">
-        <div className="mb-6 flex items-center gap-4">
-          <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <Image src={product.image} alt={product.name} fill className="object-contain p-2" />
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <TopupHeader
+          breadcrumbs={[
+            { label: "Beranda", href: "/" },
+            { label: "Top Up", href: "/topup" },
+            { label: brandName, href: `/topup/${slug}` },
+          ]}
+          title={`Top Up ${brandName}`}
+          subtitle="Isi ulang instan, pembayaran aman"
+          imageSrc={`/game/${slug}.webp`}
+        />
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+          {/* KIRI */}
+          <div className="space-y-6">
+            <HowToAccordion />
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 font-bold">
+                  1
+                </div>
+                <h2 className="text-lg font-bold">Pilih Nominal atau Paket</h2>
+              </div>
+
+              <div className="mt-4">
+                <ProductTabs groups={groups} />
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm uppercase tracking-wide text-zinc-500">{product.category}</div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{product.name}</h1>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">Isi ulang instan, pembayaran aman</div>
+
+          {/* KANAN */}
+          <div className="lg:sticky lg:top-20">
+            <PurchaseFormClient category={categoryName} brand={brandName} />
           </div>
         </div>
-        <TopupForm product={product} />
-      </div>
-      <div className="mx-auto max-w-6xl px-4">
-        <Categories />
-        <CategorySection
-          title="Produk terkait"
-          products={getProductsByCategory(product.category).filter(p => p.slug !== product.slug).slice(0, 6)}
-        />
       </div>
     </div>
-  )
+  );
 }

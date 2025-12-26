@@ -1,7 +1,6 @@
 import GogogoHero from "@/components/GogogoHero"
 import GogogoFeatures from "@/components/GogogoFeatures"
 import TrackTransaction from "@/components/TrackTransaction"
-import GogogoProductGrid from "@/components/GogogoProductGrid"
 import Banner from "@/components/Banner"
 import Categories from "@/components/Categories"
 import FAQ from "@/components/FAQ"
