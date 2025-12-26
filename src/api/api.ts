@@ -142,6 +142,9 @@ export async function getCategories() {
 export async function getBrandList(category: string) {
   return apiGet<CategoryType[]>(`/products/brands-item?category=${category}`);
 }
+export async function getGames() {
+  return apiGet<CategoryType[]>(`/products/brands-item?category=games`);
+}
 
 export async function getBrands(category: string) {
   const qs = new URLSearchParams({ category });
@@ -164,39 +167,6 @@ export async function getProductItems(params: {
 }
 
 // =====================
-// Games helper (normalize brands -> Game[])
-// =====================
-
-export async function getGames(): Promise<Game[]> {
-  const brands = await getBrands("games");
-  if (!brands || !Array.isArray(brands)) return [];
-
-  const normalized = (brands as any[])
-    .map((b) => {
-      if (typeof b === "string") {
-        const slug = b.toLowerCase().replace(/\s+/g, "-");
-        return { name: b, href: `/game/${encodeURIComponent(slug)}` };
-      }
-
-      if (b && typeof b === "object") {
-        const label = b.brand || b.title || b.name;
-        if (!label || typeof label !== "string") return null;
-
-        const slug = label.toLowerCase().replace(/\s+/g, "-");
-        return {
-          name: label,
-          href: b.href || `/game/${encodeURIComponent(slug)}`,
-          imageUrl: b.image_url || b.imageUrl,
-        };
-      }
-
-      return null;
-    })
-    .filter(Boolean) as Game[];
-
-  return normalized;
-}
-
 // =====================
 // Payment
 // =====================

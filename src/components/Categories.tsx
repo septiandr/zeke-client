@@ -5,6 +5,7 @@ import {
   getBrandList,
   getBrands,
   getCategories,
+  getGames,
   Product as ProductType,
 } from "@/api/api";
 import { useEffect, useState } from "react";
@@ -22,7 +23,6 @@ export default function Categories() {
     value: "games",
   });
   const [products, setProducts] = useState<CategoryType[]>([]);
-  console.log("🚀 ~ Categories ~ products:", products);
 
   // fetch categories sekali
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function Categories() {
   // fetch product berdasarkan selected
   useEffect(() => {
     async function fetchProducts() {
-      const data = await getBrandList(selected.value);
+      const data = await getGames();
       setProducts(data);
     }
     fetchProducts();
@@ -40,11 +40,15 @@ export default function Categories() {
 
   return (
     <section id="kategori" className="mx-auto max-w-6xl px-4 py-6">
-      <CategoriesClient
+      {/* <CategoriesClient
         categories={categories}
         selected={selected}
         setSelected={setSelected}
-      />
+      /> */}
+      <h1 className="text-3xl font-bold text-[var(--color-primary)] drop-shadow-[0_0_8px_rgba(255,200,120,0.35)]">
+        Game Populer
+      </h1>
+
       <div id="kategori-grid" className="mt-4 grid grid-cols-4 gap-4">
         <Product product={products} />
       </div>
