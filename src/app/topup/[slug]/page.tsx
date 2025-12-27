@@ -1,5 +1,5 @@
 import { getProductsByTopupSlug } from "@/api/api";
-import HowToAccordion from "@/components/HowToAccordion";
+import HowToAccordion from "@/components/topup/HowToAccordion";
 import ProductTabs from "@/components/topup/ProductTabs";
 import PurchaseFormClient from "@/components/topup/PurchaseFromClient";
 import TopupHeader from "@/components/topup/TopupHeader";
@@ -19,7 +19,6 @@ export default async function TopupPage({ params }: Props) {
     brand: slug,
     category: 'games',
   });
-  console.log("🚀 ~ TopupPage ~ raw:", raw)
 
   const groups = buildGroups(raw);
 
@@ -27,7 +26,7 @@ export default async function TopupPage({ params }: Props) {
   const categoryName = raw?.[0]?.category ?? categorySlug.toUpperCase();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen  text-white pt-20 christmas-bg">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <TopupHeader
           breadcrumbs={[
