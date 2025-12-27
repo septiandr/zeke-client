@@ -61,6 +61,24 @@ export type DigiflazzProduct = {
   desc: string;
 };
 
+type PaymentResponse = {
+  success: boolean;
+  data: {
+    title: string;
+    bank_accounts: {
+      bank: string;
+      account_name: string;
+      account_number: string;
+    }[];
+    ewallets: {
+      provider: string;
+      account_name: string;
+      number: string;
+    }[];
+    note?: string;
+  };
+};
+
 // =====================
 // Core fetch helpers
 // =====================
@@ -144,6 +162,9 @@ export async function getBrandList(category: string) {
 }
 export async function getGames() {
   return apiGet<CategoryType[]>(`/products/brands-item?category=games`);
+}
+export async function getPaymentList() {
+  return apiGet<PaymentResponse[]>(`/payment`);
 }
 
 export async function getBrands(category: string) {
