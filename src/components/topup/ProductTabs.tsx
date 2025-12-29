@@ -3,34 +3,77 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductCard from "./ProductCard";
 import type { TypeGroup, UiProduct } from "@/lib/topup";
+import { usePurchaseStore } from "@/stores/productStore";
 
 export default function ProductTabs({ groups }: { groups: TypeGroup[] }) {
   const safeGroups = useMemo(() => groups ?? [], [groups]);
+  const setProduct = usePurchaseStore((s) => s.setProduct);
 
-  const [activeType, setActiveType] = useState<string>(safeGroups[0]?.type ?? "");
-  const activeTypeGroup = safeGroups.find((g) => g.type === activeType) ?? safeGroups[0];
-
-  const [activeCountry, setActiveCountry] = useState<string>(
-    activeTypeGroup?.countries?.[0]?.country ?? "ID"
-  );
-
+  // simpan cuma "keys"
+  const [activeType, setActiveType] = useState<string>("");
+  const [activeCountry, setActiveCountry] = useState<string>("ID");
   const [selected, setSelected] = useState<UiProduct | null>(null);
 
-  // kalau ganti type -> reset country + selected
+  // ✅ sync selected -> zustand (external system)
   useEffect(() => {
-    const nextType = safeGroups.find((g) => g.type === activeType) ?? safeGroups[0];
-    // defer state update to next tick to avoid cascading renders
-    queueMicrotask(() => setActiveCountry(nextType?.countries?.[0]?.country ?? "ID"));
-    queueMicrotask(() => setSelected(null));
-  }, [activeType, safeGroups]);
+    setProduct(selected);
+  }, [selected, setProduct]);
+
+  // ---------- Derived / normalized values (NO setState) ----------
+  const firstType = safeGroups[0]?.type ?? "";
+  const normalizedType = useMemo(() => {
+    if (!safeGroups.length) return "";
+    if (activeType && safeGroups.some((g) => g.type === activeType)) return activeType;
+    return firstType;
+  }, [safeGroups, activeType, firstType]);
+
+  const activeTypeGroup = useMemo(() => {
+    if (!safeGroups.length) return undefined;
+    return safeGroups.find((g) => g.type === normalizedType) ?? safeGroups[0];
+  }, [safeGroups, normalizedType]);
+
+  const firstCountry = activeTypeGroup?.countries?.[0]?.country ?? "ID";
+  const normalizedCountry = useMemo(() => {
+    if (!activeTypeGroup) return "ID";
+    if (activeCountry && activeTypeGroup.countries?.some((c) => c.country === activeCountry)) {
+      return activeCountry;
+    }
+    return firstCountry;
+  }, [activeTypeGroup, activeCountry, firstCountry]);
+
+  const currentCountryGroup =
+    activeTypeGroup?.countries?.find((c) => c.country === normalizedCountry) ??
+    activeTypeGroup?.countries?.[0];
+
+  // ---------- Handlers (reset occurs on user action) ----------
+  const handleChangeType = (type: string) => {
+    if (!safeGroups.length) return;
+
+    // set default kalau kosong
+    const nextType = type;
+    const nextTypeGroup = safeGroups.find((g) => g.type === nextType) ?? safeGroups[0];
+    const nextCountry = nextTypeGroup?.countries?.[0]?.country ?? "ID";
+
+    setActiveType(nextType);
+    setActiveCountry(nextCountry);
+
+    // reset selection + store
+    setSelected(null);
+    setProduct(null);
+  };
+
+  const handleChangeCountry = (country: string) => {
+    setActiveCountry(country);
+    setSelected(null);
+    setProduct(null);
+  };
+
+  // ✅ optional: on first render, kalau activeType masih kosong, pakai fallback di UI
+  // (tanpa setState, jadi tidak memicu warning)
 
   if (!safeGroups.length) {
     return <div className="text-sm text-zinc-400">Belum ada produk.</div>;
   }
-
-  const currentCountryGroup =
-    activeTypeGroup?.countries?.find((c) => c.country === activeCountry) ??
-    activeTypeGroup?.countries?.[0];
 
   return (
     <div>
@@ -39,9 +82,9 @@ export default function ProductTabs({ groups }: { groups: TypeGroup[] }) {
         {safeGroups.map((g) => (
           <button
             key={g.type}
-            onClick={() => setActiveType(g.type)}
+            onClick={() => handleChangeType(g.type)}
             className={`rounded-full px-3 py-1 text-sm ${
-              activeType === g.type
+              normalizedType === g.type
                 ? "bg-white/15 text-white"
                 : "bg-white/5 text-zinc-300 hover:bg-white/10"
             }`}
@@ -63,9 +106,9 @@ export default function ProductTabs({ groups }: { groups: TypeGroup[] }) {
         {activeTypeGroup?.countries?.map((c) => (
           <button
             key={c.country}
-            onClick={() => setActiveCountry(c.country)}
+            onClick={() => handleChangeCountry(c.country)}
             className={`rounded-full px-3 py-1 text-xs border ${
-              activeCountry === c.country
+              normalizedCountry === c.country
                 ? "bg-sky-500/20 text-sky-100 border-sky-400/40"
                 : "bg-white/5 text-zinc-300 hover:bg-white/10 border-white/10"
             }`}
@@ -76,7 +119,10 @@ export default function ProductTabs({ groups }: { groups: TypeGroup[] }) {
       </div>
 
       {/* GRID */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        key={`${normalizedType}-${normalizedCountry}`} // optional: remount grid saat tab berubah
+        className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
         {currentCountryGroup?.items?.map((p) => (
           <ProductCard
             key={p.id}
@@ -87,7 +133,7 @@ export default function ProductTabs({ groups }: { groups: TypeGroup[] }) {
         ))}
       </div>
 
-      {/* SELECTED SUMMARY (opsional) */}
+      {/* SELECTED SUMMARY */}
       {selected ? (
         <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-3">
           <div className="text-xs text-zinc-400">Dipilih</div>

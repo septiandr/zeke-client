@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { getPaymentList } from "@/api/api";
 import { useMemo, useState } from "react";
+import { createPayment, getPaymentList, type PaymentPayload } from "@/api/api";
+import { usePurchaseStore } from "@/stores/productStore";
 
 type PaymentData = {
   title: string;
@@ -19,24 +20,27 @@ type PaymentData = {
   note?: string;
 };
 
-type PaymentResponse = {
-  success: boolean;
-  data: PaymentData;
-};
-
 type SelectedMethod =
   | {
       type: "bank";
-      label: string; // bank name
+      label: string;
       account_name: string;
       account_number: string;
     }
   | {
       type: "ewallet";
-      label: string; // provider
+      label: string;
       account_name: string;
       number: string;
     };
+
+type InvoiceData = {
+  invoice_id?: string;
+  amount?: number;
+  payment_method?: "bank_transfer" | "ewallet";
+  payment_channel?: string;
+  expires_at?: string;
+};
 
 export default function PurchaseFormClient({
   brand,
@@ -45,22 +49,29 @@ export default function PurchaseFormClient({
   brand: string;
   category: string;
 }) {
+  const product = usePurchaseStore((s) => s.product);
+
   const [userId, setUserId] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [wa, setWa] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // modal + api state
+  // modal + payment list state
   const [openPayment, setOpenPayment] = useState(false);
   const [payment, setPayment] = useState<PaymentData | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // ✅ new: step & selected method
+  // step + selection
   const [step, setStep] = useState<"select" | "summary">("select");
   const [selectedMethod, setSelectedMethod] = useState<SelectedMethod | null>(
     null
   );
+
+  // invoice state
+  const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   const isML = useMemo(
     () => ["MOBILE LEGENDS", "Magic Chess"].includes(brand),
@@ -70,6 +81,7 @@ export default function PurchaseFormClient({
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
+    if (!product) newErrors.product = "Pilih produk dulu";
     if (!userId.trim()) newErrors.userId = "User ID wajib diisi";
     if (isML && !zoneId.trim()) newErrors.zoneId = "Zone ID wajib diisi";
 
@@ -83,6 +95,14 @@ export default function PurchaseFormClient({
     return Object.keys(newErrors).length === 0;
   };
 
+  const resetModalState = () => {
+    setPaymentError(null);
+    setInvoiceError(null);
+    setSelectedMethod(null);
+    setInvoice(null);
+    setStep("select");
+  };
+
   const fetchPaymentMethods = async () => {
     setPaymentLoading(true);
     setPaymentError(null);
@@ -90,9 +110,6 @@ export default function PurchaseFormClient({
     try {
       const res: any = await getPaymentList();
 
-      // ✅ support 2 bentuk return:
-      // 1) {success, data}
-      // 2) langsung data (title, bank_accounts, ewallets)
       const data: PaymentData | null = res?.data?.bank_accounts
         ? (res.data as PaymentData)
         : res?.bank_accounts
@@ -103,10 +120,7 @@ export default function PurchaseFormClient({
 
       setPayment(data);
       setOpenPayment(true);
-
-      // reset step & selection tiap buka modal
-      setStep("select");
-      setSelectedMethod(null);
+      resetModalState();
     } catch (e: any) {
       setPaymentError(e?.message || "Terjadi kesalahan");
       setOpenPayment(true);
@@ -128,46 +142,111 @@ export default function PurchaseFormClient({
 
   const closeModal = () => {
     setOpenPayment(false);
-    setPaymentError(null);
     setPayment(null);
-    setSelectedMethod(null);
-    setStep("select");
+    resetModalState();
+  };
+
+  const ensureBeforeInvoice = () => {
+    if (!product) {
+      setInvoiceError("Produk belum dipilih");
+      return false;
+    }
+    if (!wa.trim()) {
+      setInvoiceError("Nomor WhatsApp wajib diisi");
+      return false;
+    }
+    if (!product.price || product.price <= 0) {
+      setInvoiceError("Harga produk tidak valid");
+      return false;
+    }
+    return true;
+  };
+
+  const createInvoiceFlow = async (
+    method: SelectedMethod,
+    payload: PaymentPayload
+  ) => {
+    if (!ensureBeforeInvoice()) return;
+
+    setSelectedMethod(method);
+    setInvoiceLoading(true);
+    setInvoiceError(null);
+
+    try {
+      const res: any = await createPayment(payload);
+
+      // support 2 bentuk: {success, data} atau langsung data
+      const inv: InvoiceData | null = res?.data
+        ? (res.data as InvoiceData)
+        : res
+        ? (res as InvoiceData)
+        : null;
+
+      setInvoice(inv);
+      setStep("summary");
+    } catch (e: any) {
+      setInvoiceError(e?.message || "Gagal membuat invoice");
+      setStep("select");
+    } finally {
+      setInvoiceLoading(false);
+    }
   };
 
   const chooseBank = (b: PaymentData["bank_accounts"][number]) => {
-    setSelectedMethod({
+    if (!product) return setInvoiceError("Produk belum dipilih");
+
+    const payload: PaymentPayload = {
+      amount: product.price,
+      payment_channel: b.bank,
+      payment_method: "bank_transfer", // ✅ FIX
+      phone_number: wa.trim(),
+    };
+
+    const method: SelectedMethod = {
       type: "bank",
       label: b.bank,
       account_name: b.account_name,
       account_number: b.account_number,
-    });
-    setStep("summary");
+    };
+
+    void createInvoiceFlow(method, payload);
   };
 
   const chooseEwallet = (w: PaymentData["ewallets"][number]) => {
-    setSelectedMethod({
+    if (!product) return setInvoiceError("Produk belum dipilih");
+
+    const payload: PaymentPayload = {
+      amount: product.price,
+      payment_channel: w.provider,
+      payment_method: "e_wallet",
+      phone_number: wa.trim(),
+    };
+
+    const method: SelectedMethod = {
       type: "ewallet",
       label: w.provider,
       account_name: w.account_name,
       number: w.number,
-    });
-    setStep("summary");
+    };
+
+    void createInvoiceFlow(method, payload);
   };
 
   const handleAlreadyPaid = async () => {
-    // ✅ data rangkuman yang biasanya kamu kirim ke API konfirmasi
     const payload = {
       brand,
       category,
+      product,
       userId: userId.trim(),
       zoneId: isML ? zoneId.trim() : undefined,
       wa: wa.trim(),
       paymentMethod: selectedMethod,
+      invoice,
     };
 
     console.log("CONFIRM PAID:", payload);
 
-    // TODO: hit api confirm payment/invoice
+    // TODO: hit API confirm payment
     // await confirmPaid(payload)
 
     closeModal();
@@ -178,6 +257,19 @@ export default function PurchaseFormClient({
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
         <div className="text-sm text-zinc-400">{category}</div>
         <div className="text-lg font-extrabold">{brand}</div>
+
+        {/* selected product hint */}
+        <div className="mt-2 text-xs text-zinc-400">
+          Produk:{" "}
+          <span className="text-white">
+            {product
+              ? `${product.name} • Rp ${product.price.toLocaleString("id-ID")}`
+              : "- belum dipilih -"}
+          </span>
+        </div>
+        {errors.product && (
+          <p className="mt-1 text-xs text-red-400">{errors.product}</p>
+        )}
 
         <div className="mt-4 space-y-3">
           {/* USER ID */}
@@ -288,15 +380,21 @@ export default function PurchaseFormClient({
                 </div>
               )}
 
-              {paymentLoading && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-200">
-                  Memuat metode pembayaran...
+              {invoiceError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+                  {invoiceError}
                 </div>
               )}
 
               {/* STEP 1: SELECT */}
               {!paymentLoading && payment && step === "select" && (
                 <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-6">
+                  {invoiceLoading && (
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-200">
+                      Membuat invoice...
+                    </div>
+                  )}
+
                   {/* EWALLET */}
                   <div>
                     <div className="mb-2 text-sm font-bold sticky top-0 bg-zinc-950 py-2">
@@ -307,7 +405,12 @@ export default function PurchaseFormClient({
                         <button
                           key={`${w.provider}-${idx}`}
                           onClick={() => chooseEwallet(w)}
-                          className="w-full text-left rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+                          disabled={invoiceLoading}
+                          className={`w-full text-left rounded-xl border border-white/10 p-3 ${
+                            invoiceLoading
+                              ? "bg-white/5 opacity-60"
+                              : "bg-white/5 hover:bg-white/10"
+                          }`}
                         >
                           <div className="text-sm font-semibold">
                             {w.provider}
@@ -325,6 +428,7 @@ export default function PurchaseFormClient({
                       ))}
                     </div>
                   </div>
+
                   {/* BANK */}
                   <div>
                     <div className="mb-2 text-sm font-bold sticky top-0 bg-zinc-950 py-2">
@@ -335,7 +439,12 @@ export default function PurchaseFormClient({
                         <button
                           key={`${b.bank}-${idx}`}
                           onClick={() => chooseBank(b)}
-                          className="w-full text-left rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10"
+                          disabled={invoiceLoading}
+                          className={`w-full text-left rounded-xl border border-white/10 p-3 ${
+                            invoiceLoading
+                              ? "bg-white/5 opacity-60"
+                              : "bg-white/5 hover:bg-white/10"
+                          }`}
                         >
                           <div className="text-sm font-semibold">{b.bank}</div>
                           <div className="text-xs text-zinc-400">
@@ -362,30 +471,39 @@ export default function PurchaseFormClient({
                   <>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                       <div className="mb-2 text-sm font-bold">Rangkuman</div>
-                      <div className="text-sm text-zinc-200">
+                      <div className="text-sm text-zinc-200 space-y-2">
                         <div className="flex justify-between gap-3">
-                          <span className="text-zinc-400">Game</span>
-                          <span className="font-semibold">{brand}</span>
+                          <span className="text-zinc-400">Produk</span>
+                          <span className="font-semibold">
+                            {product?.name ?? "-"}
+                          </span>
                         </div>
 
-                        <div className="mt-2 flex justify-between gap-3">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-zinc-400">Harga</span>
+                          <span className="font-semibold">
+                            Rp {product?.price?.toLocaleString("id-ID") ?? "-"}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
                           <span className="text-zinc-400">User ID</span>
                           <span className="font-mono">{userId}</span>
                         </div>
 
                         {isML && (
-                          <div className="mt-2 flex justify-between gap-3">
+                          <div className="flex justify-between gap-3">
                             <span className="text-zinc-400">Zone ID</span>
                             <span className="font-mono">{zoneId}</span>
                           </div>
                         )}
 
-                        <div className="mt-2 flex justify-between gap-3">
+                        <div className="flex justify-between gap-3">
                           <span className="text-zinc-400">WhatsApp</span>
                           <span className="font-mono">{wa}</span>
                         </div>
 
-                        <div className="mt-2 flex justify-between gap-3">
+                        <div className="flex justify-between gap-3">
                           <span className="text-zinc-400">Metode</span>
                           <span className="font-semibold">
                             {selectedMethod.type === "bank"
@@ -393,6 +511,15 @@ export default function PurchaseFormClient({
                               : `E-Wallet (${selectedMethod.label})`}
                           </span>
                         </div>
+
+                        {invoice?.invoice_id && (
+                          <div className="flex justify-between gap-3">
+                            <span className="text-zinc-400">Invoice</span>
+                            <span className="font-mono">
+                              {invoice.invoice_id}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -446,25 +573,33 @@ export default function PurchaseFormClient({
                       )}
                     </div>
 
-                    {payment.note && (
                       <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-200">
                         <div className="mb-1 text-xs font-semibold text-zinc-400">
                           Catatan
                         </div>
-                        {payment.note}
+                        Pesanan sedang diverifikasi oleh admin
                       </div>
-                    )}
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setStep("select")}
+                        onClick={() => {
+                          setStep("select");
+                          setInvoice(null);
+                          setInvoiceError(null);
+                        }}
                         className="w-1/2 rounded-xl bg-white/10 py-3 font-bold text-white hover:bg-white/15"
                       >
                         Ganti Metode
                       </button>
+
                       <button
                         onClick={handleAlreadyPaid}
-                        className="w-1/2 rounded-xl bg-emerald-500/80 py-3 font-bold text-white hover:bg-emerald-500"
+                        disabled={invoiceLoading}
+                        className={`w-1/2 rounded-xl py-3 font-bold text-white ${
+                          invoiceLoading
+                            ? "bg-emerald-500/40 cursor-not-allowed"
+                            : "bg-emerald-500/80 hover:bg-emerald-500"
+                        }`}
                       >
                         Saya sudah bayar
                       </button>

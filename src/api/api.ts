@@ -25,10 +25,10 @@ export type Product = {
   unlimited_stock: boolean;
 };
 
-export type CategoryType ={
-  label:string,
-  value:string
-}
+export type CategoryType = {
+  label: string;
+  value: string;
+};
 
 export type BackendGame = {
   id?: string | number;
@@ -79,6 +79,13 @@ type PaymentResponse = {
   };
 };
 
+export type PaymentPayload = {
+  phone_number: string;
+  amount: number;
+  payment_method: string;
+  payment_channel: string;
+};
+
 // =====================
 // Core fetch helpers
 // =====================
@@ -96,7 +103,10 @@ function unwrapJsonData(json: any) {
   return json;
 }
 
-export async function apiGet<T = any>(path: string, init?: RequestInit): Promise<T> {
+export async function apiGet<T = any>(
+  path: string,
+  init?: RequestInit
+): Promise<T> {
   const url = buildUrl(path);
 
   const res = await fetch(url, {
@@ -163,8 +173,11 @@ export async function getBrandList(category: string) {
 export async function getGames() {
   return apiGet<CategoryType[]>(`/products/brands-item?category=games`);
 }
-export async function getPaymentList() {
-  return apiGet<PaymentResponse[]>(`/payment`);
+export async function getPaymentList(): Promise<PaymentResponse> {
+  return apiGet("/payments/payment_method");
+}
+export async function createPayment(payload : PaymentPayload) {
+  return apiPost("/payments", payload);
 }
 
 export async function getBrands(category: string) {
@@ -186,16 +199,6 @@ export async function getProductsByTopupSlug(params: {
   const data = await apiGet<any>(`/products/items?${qs.toString()}`);
   return Array.isArray(data) ? (data as DigiflazzProduct[]) : [];
 }
-
-// =====================`
-// =====================
-// Payment
-// =====================
-
-export async function getPaymentInfo() {
-  return apiGet("/payment");
-}
-
 // =====================
 // Nickname checker
 // =====================
@@ -217,7 +220,9 @@ export async function checkNickname(
 // Product lookup by SKU
 // =====================
 
-export async function getProductBySku(sku: string): Promise<DigiflazzProduct | null> {
+export async function getProductBySku(
+  sku: string
+): Promise<DigiflazzProduct | null> {
   const products = await getProducts();
   if (!Array.isArray(products)) return null;
   return products.find((p) => p.buyer_sku_code === sku) || null;
