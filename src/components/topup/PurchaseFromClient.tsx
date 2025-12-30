@@ -2,8 +2,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createPayment, getPaymentList, type PaymentPayload } from "@/api/api";
+import {
+  checkNickname,
+  createPayment,
+  getPaymentList,
+  typeResponseNickname,
+  type PaymentPayload,
+} from "@/api/api";
 import { usePurchaseStore } from "@/stores/productStore";
+import { getGameUrlFromValue } from "@/lib/gameurl";
 
 type PaymentData = {
   title: string;
@@ -45,11 +52,17 @@ type InvoiceData = {
 export default function PurchaseFormClient({
   brand,
   category,
+  slug,
 }: {
   brand: string;
   category: string;
+  slug: string;
 }) {
-  const product = usePurchaseStore((s) => s.product);
+  const product = usePurchaseStore((s) => {
+    return s.product;
+  });
+  const nickname = getGameUrlFromValue(slug);
+  const [nick, setNick] = useState<typeResponseNickname>();
 
   const [userId, setUserId] = useState("");
   const [zoneId, setZoneId] = useState("");
@@ -82,8 +95,8 @@ export default function PurchaseFormClient({
     const newErrors: Record<string, string> = {};
 
     if (!product) newErrors.product = "Pilih produk dulu";
-    if (!userId.trim()) newErrors.userId = "User ID wajib diisi";
-    if (isML && !zoneId.trim()) newErrors.zoneId = "Zone ID wajib diisi";
+    if (!userId) newErrors.userId = "User ID wajib diisi";
+    if (isML && !zoneId) newErrors.zoneId = "Zone ID wajib diisi";
 
     if (!wa.trim()) {
       newErrors.wa = "Nomor WhatsApp wajib diisi";
@@ -132,6 +145,11 @@ export default function PurchaseFormClient({
   const handleSubmit = async () => {
     if (!validate()) return;
     await fetchPaymentMethods();
+    const res = await checkNickname(nickname, userId ?? "", {
+      server: zoneId ?? undefined,
+      decode: true,
+    });
+    setNick(res);
   };
 
   const copyText = async (text: string) => {
@@ -200,6 +218,11 @@ export default function PurchaseFormClient({
       payment_channel: b.bank,
       payment_method: "bank_transfer", // ✅ FIX
       phone_number: wa.trim(),
+      user_id: parseInt(userId),
+      zone_id: parseInt(zoneId) ?? undefined,
+      nickname: nick?.name ?? "",
+      product_name: product.name,
+      product_code: product.productCode,
     };
 
     const method: SelectedMethod = {
@@ -220,6 +243,11 @@ export default function PurchaseFormClient({
       payment_channel: w.provider,
       payment_method: "e_wallet",
       phone_number: wa.trim(),
+      user_id: parseInt(userId),
+      zone_id: parseInt(zoneId) ?? undefined,
+      nickname: nick?.name ?? "",
+      product_name: product.name,
+      product_code: product.productCode,
     };
 
     const method: SelectedMethod = {
@@ -237,8 +265,8 @@ export default function PurchaseFormClient({
       brand,
       category,
       product,
-      userId: userId.trim(),
-      zoneId: isML ? zoneId.trim() : undefined,
+      userId: String(userId ?? "").trim(),
+      zoneId: isML && zoneId ? String(zoneId).trim() : undefined,
       wa: wa.trim(),
       paymentMethod: selectedMethod,
       invoice,
@@ -270,7 +298,6 @@ export default function PurchaseFormClient({
         {errors.product && (
           <p className="mt-1 text-xs text-red-400">{errors.product}</p>
         )}
-
         <div className="mt-4 space-y-3">
           {/* USER ID */}
           <div>
@@ -295,7 +322,7 @@ export default function PurchaseFormClient({
             <div>
               <label className="text-xs text-zinc-400">Zone ID *</label>
               <input
-                value={zoneId}
+                value={zoneId ?? ""}
                 onChange={(e) => setZoneId(e.target.value)}
                 className={`mt-1 w-full rounded-xl border bg-black/30 px-3 py-2 text-sm outline-none ${
                   errors.zoneId
@@ -480,12 +507,22 @@ export default function PurchaseFormClient({
                         </div>
 
                         <div className="flex justify-between gap-3">
+                          <span className="text-zinc-400">Game</span>
+                          <span className="font-semibold">
+                            {slug.replace("-", " ").toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-3">
                           <span className="text-zinc-400">Harga</span>
                           <span className="font-semibold">
                             Rp {product?.price?.toLocaleString("id-ID") ?? "-"}
                           </span>
                         </div>
 
+                        <div className="flex justify-between gap-3">
+                          <span className="text-zinc-400">Nickname</span>
+                          <span className="font-mono">{nick?.name}</span>
+                        </div>
                         <div className="flex justify-between gap-3">
                           <span className="text-zinc-400">User ID</span>
                           <span className="font-mono">{userId}</span>
@@ -573,12 +610,12 @@ export default function PurchaseFormClient({
                       )}
                     </div>
 
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-200">
-                        <div className="mb-1 text-xs font-semibold text-zinc-400">
-                          Catatan
-                        </div>
-                        Pesanan sedang diverifikasi oleh admin
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-200">
+                      <div className="mb-1 text-xs font-semibold text-zinc-400">
+                        Catatan
                       </div>
+                      Pesanan sedang diverifikasi oleh admin
+                    </div>
 
                     <div className="flex gap-2">
                       <button

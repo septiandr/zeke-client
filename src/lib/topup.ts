@@ -9,6 +9,7 @@ export type RawProduct = {
   price: number;
   original_price?: number;
   discount_percent?: number;
+  buyer_sku_code: string;
 };
 
 export type UiProduct = {
@@ -20,6 +21,7 @@ export type UiProduct = {
   originalPrice?: number;
   discountPercent?: number;
   rawName: string;
+  productCode: string;
 };
 
 export type CountryGroup = {
@@ -60,41 +62,50 @@ export function buildTypeCountryGroups(raw: RawProduct[]): TypeGroup[] {
     byType.set(key, [...(byType.get(key) ?? []), p]);
   }
 
-  const typeGroups: TypeGroup[] = Array.from(byType.entries()).map(([type, list]) => {
-    const byCountry = new Map<string, UiProduct[]>();
+  const typeGroups: TypeGroup[] = Array.from(byType.entries()).map(
+    ([type, list]) => {
+      const byCountry = new Map<string, UiProduct[]>();
 
-    list.forEach((p, idx) => {
-      const { cleanName, country } = parseCountryFromName(p.product_name);
+      list.forEach((p, idx) => {
+        const { cleanName, country } = parseCountryFromName(p.product_name);
 
-      const item: UiProduct = {
-        id: makeId(p, idx),
-        name: cleanName,
-        rawName: p.product_name,
-        country,
-        sellerName: p.seller_name,
-        price: Number(p.price) || 0,
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        discountPercent: p.discount_percent ? Number(p.discount_percent) : undefined,
+        const item: UiProduct = {
+          id: makeId(p, idx),
+          name: cleanName,
+          rawName: p.product_name,
+          country,
+          productCode:p.buyer_sku_code,
+          sellerName: p.seller_name,
+          price: Number(p.price) || 0,
+          originalPrice: p.original_price
+            ? Number(p.original_price)
+            : undefined,
+          discountPercent: p.discount_percent
+            ? Number(p.discount_percent)
+            : undefined,
+        };
+
+        byCountry.set(country, [...(byCountry.get(country) ?? []), item]);
+      });
+
+      const countries: CountryGroup[] = Array.from(byCountry.entries())
+        .map(([country, items]) => ({
+          country,
+          items: items.sort(
+            (a, b) => extractNumber(a.name) - extractNumber(b.name)
+          ),
+        }))
+        .sort((a, b) => sortCountry(a.country, b.country));
+
+      return {
+        type,
+        note: type.toLowerCase().includes("membership")
+          ? "Membership biasanya memiliki batas pembelian per akun (tergantung provider)."
+          : undefined,
+        countries,
       };
-
-      byCountry.set(country, [...(byCountry.get(country) ?? []), item]);
-    });
-
-    const countries: CountryGroup[] = Array.from(byCountry.entries())
-      .map(([country, items]) => ({
-        country,
-        items: items.sort((a, b) => extractNumber(a.name) - extractNumber(b.name)),
-      }))
-      .sort((a, b) => sortCountry(a.country, b.country));
-
-    return {
-      type,
-      note: type.toLowerCase().includes("membership")
-        ? "Membership biasanya memiliki batas pembelian per akun (tergantung provider)."
-        : undefined,
-      countries,
-    };
-  });
+    }
+  );
 
   // sort type aman (yang tidak ada di list, taruh terakhir)
   const typeOrder = ["Umum", "Membership", "Lainnya"];

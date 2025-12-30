@@ -84,6 +84,18 @@ export type PaymentPayload = {
   amount: number;
   payment_method: string;
   payment_channel: string;
+  user_id: number;
+  zone_id: number | undefined;
+  nickname: string;
+  product_name:string;
+  product_code:string;
+};
+
+export type typeResponseNickname = {
+  game: string;
+  id: number;
+  name: string;
+  server: number;
 };
 
 // =====================
@@ -176,7 +188,7 @@ export async function getGames() {
 export async function getPaymentList(): Promise<PaymentResponse> {
   return apiGet("/payments/payment_method");
 }
-export async function createPayment(payload : PaymentPayload) {
+export async function createPayment(payload: PaymentPayload) {
   return apiPost("/payments", payload);
 }
 
@@ -207,7 +219,7 @@ export async function checkNickname(
   game: string,
   id: string | number,
   opts?: { server?: string | number; decode?: boolean }
-) {
+): Promise<typeResponseNickname> {
   const params = new URLSearchParams();
   params.set("id", String(id));
   if (opts?.server !== undefined) params.set("server", String(opts.server));

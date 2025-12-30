@@ -1,4 +1,4 @@
-import { getProductsByTopupSlug } from "@/api/api";
+import { getProductsByTopupSlug, Product } from "@/api/api";
 import HowToAccordion from "@/components/topup/HowToAccordion";
 import ProductTabs from "@/components/topup/ProductTabs";
 import PurchaseFormClient from "@/components/topup/PurchaseFromClient";
@@ -15,7 +15,7 @@ export default async function TopupPage({ params }: Props) {
   const { brandSlug, categorySlug } = parseTopupSlug(slug);
 
   // ✅ hit endpoint sesuai wrapper kamu
-  const raw: RawProduct[] = await getProductsByTopupSlug({
+  const raw: Product[] = await getProductsByTopupSlug({
     brand: slug,
     category: 'games',
   });
@@ -60,7 +60,7 @@ export default async function TopupPage({ params }: Props) {
 
           {/* KANAN */}
           <div className="lg:sticky lg:top-20">
-            <PurchaseFormClient category={categoryName} brand={brandName} />
+            <PurchaseFormClient category={categoryName} brand={brandName} slug={slug}/>
           </div>
         </div>
       </div>
