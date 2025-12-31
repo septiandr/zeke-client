@@ -12,7 +12,7 @@ export default async function Categories() {
         Game Populer
       </h1>
 
-      <div id="kategori-grid" className="mt-4 grid grid-cols-4 gap-4">
+      <div id="kategori-grid" className="mt-4 grid md:grid-cols-4 grid-cols-2 gap-4">
         {products.length > 0 ? <Product product={products} /> : null}
       </div>
     </section>

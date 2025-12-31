@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/navbar/Navbar";
 
 // kalau kamu pakai next/font, tetap aman
 import { Geist, Geist_Mono } from "next/font/google";

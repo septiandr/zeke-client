@@ -1,4 +1,5 @@
 import { parseCountryFromName } from "./country";
+import { ProductWithProfit } from "./profit";
 
 export type RawProduct = {
   product_name: string;
@@ -55,8 +56,8 @@ function sortCountry(a: string, b: string) {
   return ia - ib;
 }
 
-export function buildTypeCountryGroups(raw: RawProduct[]): TypeGroup[] {
-  const byType = new Map<string, RawProduct[]>();
+export function buildTypeCountryGroups(raw: ProductWithProfit[]): TypeGroup[] {
+  const byType = new Map<string, ProductWithProfit[]>();
   for (const p of raw) {
     const key = p.type || "Lainnya";
     byType.set(key, [...(byType.get(key) ?? []), p]);
@@ -76,13 +77,13 @@ export function buildTypeCountryGroups(raw: RawProduct[]): TypeGroup[] {
           country,
           productCode:p.buyer_sku_code,
           sellerName: p.seller_name,
-          price: Number(p.price) || 0,
-          originalPrice: p.original_price
-            ? Number(p.original_price)
+          price: Number(p.sell_price) || 0,
+          originalPrice: p.base_price
+            ? Number(p.base_price)
             : undefined,
-          discountPercent: p.discount_percent
-            ? Number(p.discount_percent)
-            : undefined,
+          // discountPercent: p.
+          //   ? Number(p.discount_percent)
+          //   : undefined,
         };
 
         byCountry.set(country, [...(byCountry.get(country) ?? []), item]);

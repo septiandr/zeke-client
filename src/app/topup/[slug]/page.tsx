@@ -1,8 +1,9 @@
-import { getProductsByTopupSlug, Product } from "@/api/api";
+import { getPrice, getProductsByTopupSlug, Product } from "@/api/api";
 import HowToAccordion from "@/components/topup/HowToAccordion";
 import ProductTabs from "@/components/topup/ProductTabs";
 import PurchaseFormClient from "@/components/topup/PurchaseFromClient";
 import TopupHeader from "@/components/topup/TopupHeader";
+import { applyProfitUser } from "@/lib/profit";
 import { parseTopupSlug } from "@/lib/slug";
 import { buildGroups, RawProduct } from "@/lib/topup";
 
@@ -20,7 +21,10 @@ export default async function TopupPage({ params }: Props) {
     category: 'games',
   });
 
-  const groups = buildGroups(raw);
+  const price = await getPrice();
+  const productsWithProfit = applyProfitUser(raw, price);
+
+  const groups = buildGroups(productsWithProfit);
 
   const brandName = raw?.[0]?.brand ?? brandSlug.replaceAll("-", " ").toUpperCase();
   const categoryName = raw?.[0]?.category ?? categorySlug.toUpperCase();

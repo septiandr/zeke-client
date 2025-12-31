@@ -251,3 +251,7 @@ export async function createTransaction(input: {
 }) {
   return apiPost("/digiflazz/transaction", input);
 }
+
+export async function getPrice() {
+  return apiGet("/settings/profit");
+}

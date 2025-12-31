@@ -282,7 +282,7 @@ export default function PurchaseFormClient({
 
   return (
     <>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur" id="purchase">
         <div className="text-sm text-zinc-400">{category}</div>
         <div className="text-lg font-extrabold">{brand}</div>
 
